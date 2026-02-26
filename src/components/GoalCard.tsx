@@ -1,22 +1,26 @@
 import { motion } from 'framer-motion';
-import { Goal, CATEGORY_CONFIG } from '@/types/goal';
+import { CATEGORY_CONFIG } from '@/types/goal';
+import { DbGoal } from '@/hooks/useGoals';
 import ProgressRing from './ProgressRing';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { Trash2, Calendar } from 'lucide-react';
+import { Trash2, Calendar, Pin, Archive, RotateCcw } from 'lucide-react';
 import { format, isPast, parseISO } from 'date-fns';
 
 interface GoalCardProps {
-  goal: Goal;
+  goal: DbGoal;
   index: number;
   onToggleMilestone: (goalId: string, milestoneId: string) => void;
   onDelete: (id: string) => void;
+  onTogglePin: (id: string) => void;
+  onUpdateStatus: (id: string, status: string) => void;
 }
 
-const GoalCard = ({ goal, index, onToggleMilestone, onDelete }: GoalCardProps) => {
-  const config = CATEGORY_CONFIG[goal.category];
-  const isOverdue = isPast(parseISO(goal.targetDate)) && goal.progress < 100;
-  const isComplete = goal.progress === 100;
+const GoalCard = ({ goal, index, onToggleMilestone, onDelete, onTogglePin, onUpdateStatus }: GoalCardProps) => {
+  const config = CATEGORY_CONFIG[goal.category as keyof typeof CATEGORY_CONFIG] || { label: goal.category, emoji: '🎯' };
+  const isOverdue = isPast(parseISO(goal.target_date)) && goal.progress < 100;
+  const isComplete = goal.progress === 100 || goal.status === 'completed';
+  const isArchived = goal.status === 'archived';
 
   return (
     <motion.div
@@ -25,78 +29,64 @@ const GoalCard = ({ goal, index, onToggleMilestone, onDelete }: GoalCardProps) =
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.35, delay: index * 0.05 }}
       className={`group relative rounded-lg border bg-card p-5 transition-shadow hover:shadow-md ${
-        isComplete ? 'border-success/30' : isOverdue ? 'border-warning/30' : 'border-border'
+        isComplete ? 'border-success/30' : isOverdue ? 'border-warning/30' : isArchived ? 'border-border opacity-60' : 'border-border'
       }`}
     >
+      {goal.pinned && (
+        <div className="absolute -top-2 -right-2 bg-accent text-accent-foreground rounded-full p-1">
+          <Pin className="w-3 h-3" />
+        </div>
+      )}
       <div className="flex items-start gap-4">
         <ProgressRing progress={goal.progress} />
-
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-lg">{config.emoji}</span>
-            <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              {config.label}
-            </span>
-            {isComplete && (
-              <span className="text-xs font-medium text-success bg-success/10 px-2 py-0.5 rounded-full">
-                Complete ✓
-              </span>
-            )}
+            <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{config.label}</span>
+            {isComplete && <span className="text-xs font-medium text-success bg-success/10 px-2 py-0.5 rounded-full">Complete ✓</span>}
+            {isArchived && <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Archived</span>}
           </div>
-
-          <h3 className="font-heading font-semibold text-lg text-card-foreground truncate">
-            {goal.title}
-          </h3>
-
-          {goal.description && (
-            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-              {goal.description}
-            </p>
-          )}
-
+          <h3 className="font-heading font-semibold text-lg text-card-foreground truncate">{goal.title}</h3>
+          {goal.description && <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{goal.description}</p>}
           <div className="flex items-center gap-1.5 mt-2 text-xs text-muted-foreground">
             <Calendar className="w-3.5 h-3.5" />
             <span className={isOverdue ? 'text-warning font-medium' : ''}>
-              {isOverdue ? 'Overdue · ' : ''}
-              {format(parseISO(goal.targetDate), 'MMM d, yyyy')}
+              {isOverdue ? 'Overdue · ' : ''}{format(parseISO(goal.target_date), 'MMM d, yyyy')}
             </span>
           </div>
-
           {goal.milestones.length > 0 && (
             <div className="mt-3 space-y-1.5">
               {goal.milestones.map((m) => (
-                <label
-                  key={m.id}
-                  className="flex items-center gap-2 cursor-pointer group/item"
-                >
+                <label key={m.id} className="flex items-center gap-2 cursor-pointer">
                   <Checkbox
                     checked={m.completed}
                     onCheckedChange={() => onToggleMilestone(goal.id, m.id)}
                     className="data-[state=checked]:bg-success data-[state=checked]:border-success"
+                    disabled={isArchived}
                   />
-                  <span
-                    className={`text-sm transition-colors ${
-                      m.completed
-                        ? 'line-through text-muted-foreground'
-                        : 'text-card-foreground'
-                    }`}
-                  >
-                    {m.title}
-                  </span>
+                  <span className={`text-sm transition-colors ${m.completed ? 'line-through text-muted-foreground' : 'text-card-foreground'}`}>{m.title}</span>
                 </label>
               ))}
             </div>
           )}
         </div>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive shrink-0"
-          onClick={() => onDelete(goal.id)}
-        >
-          <Trash2 className="w-4 h-4" />
-        </Button>
+        <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-accent" onClick={() => onTogglePin(goal.id)} title={goal.pinned ? 'Unpin' : 'Pin'}>
+            <Pin className={`w-3.5 h-3.5 ${goal.pinned ? 'fill-current' : ''}`} />
+          </Button>
+          {isArchived ? (
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => onUpdateStatus(goal.id, 'active')} title="Restore">
+              <RotateCcw className="w-3.5 h-3.5" />
+            </Button>
+          ) : (
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-muted-foreground" onClick={() => onUpdateStatus(goal.id, 'archived')} title="Archive">
+              <Archive className="w-3.5 h-3.5" />
+            </Button>
+          )}
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => onDelete(goal.id)} title="Delete">
+            <Trash2 className="w-3.5 h-3.5" />
+          </Button>
+        </div>
       </div>
     </motion.div>
   );
