@@ -1,10 +1,12 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CATEGORY_CONFIG } from '@/types/goal';
+import { CATEGORY_CONFIG, GoalCategory } from '@/types/goal';
 import { DbGoal } from '@/hooks/useGoals';
 import ProgressRing from './ProgressRing';
+import EditGoalDialog from './EditGoalDialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { Trash2, Calendar, Pin, Archive, RotateCcw } from 'lucide-react';
+import { Trash2, Calendar, Pin, Archive, RotateCcw, Pencil } from 'lucide-react';
 import { format, isPast, parseISO } from 'date-fns';
 
 interface GoalCardProps {
@@ -14,9 +16,11 @@ interface GoalCardProps {
   onDelete: (id: string) => void;
   onTogglePin: (id: string) => void;
   onUpdateStatus: (id: string, status: string) => void;
+  onEdit: (id: string, data: { title: string; description: string; category: GoalCategory; targetDate: string; milestones: { id: string; title: string; completed: boolean }[] }) => void;
 }
 
-const GoalCard = ({ goal, index, onToggleMilestone, onDelete, onTogglePin, onUpdateStatus }: GoalCardProps) => {
+const GoalCard = ({ goal, index, onToggleMilestone, onDelete, onTogglePin, onUpdateStatus, onEdit }: GoalCardProps) => {
+  const [editOpen, setEditOpen] = useState(false);
   const config = CATEGORY_CONFIG[goal.category as keyof typeof CATEGORY_CONFIG] || { label: goal.category, emoji: '🎯' };
   const isOverdue = isPast(parseISO(goal.target_date)) && goal.progress < 100;
   const isComplete = goal.progress === 100 || goal.status === 'completed';
@@ -71,6 +75,11 @@ const GoalCard = ({ goal, index, onToggleMilestone, onDelete, onTogglePin, onUpd
           )}
         </div>
         <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+          {!isArchived && (
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => setEditOpen(true)} title="Edit">
+              <Pencil className="w-3.5 h-3.5" />
+            </Button>
+          )}
           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-accent" onClick={() => onTogglePin(goal.id)} title={goal.pinned ? 'Unpin' : 'Pin'}>
             <Pin className={`w-3.5 h-3.5 ${goal.pinned ? 'fill-current' : ''}`} />
           </Button>
@@ -88,6 +97,7 @@ const GoalCard = ({ goal, index, onToggleMilestone, onDelete, onTogglePin, onUpd
           </Button>
         </div>
       </div>
+      <EditGoalDialog goal={goal} open={editOpen} onOpenChange={setEditOpen} onSave={onEdit} />
     </motion.div>
   );
 };
