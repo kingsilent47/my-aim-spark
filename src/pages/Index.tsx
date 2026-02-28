@@ -9,6 +9,7 @@ import StatsBar from '@/components/StatsBar';
 import EmptyState from '@/components/EmptyState';
 import ThemeToggle from '@/components/ThemeToggle';
 import AnalyticsModal from '@/components/AnalyticsModal';
+import StreakCalendar from '@/components/StreakCalendar';
 import { Target, LogOut, Download, Search, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,7 +20,7 @@ const allCategories = Object.keys(CATEGORY_CONFIG) as GoalCategory[];
 
 const Index = () => {
   const { user, loading: authLoading, signOut } = useAuth();
-  const { goals, loading, addGoal, deleteGoal, toggleMilestone, updateGoalStatus, togglePin, exportGoals } = useGoals();
+  const { goals, loading, addGoal, updateGoal, deleteGoal, toggleMilestone, updateGoalStatus, togglePin, exportGoals } = useGoals();
   const [categoryFilter, setCategoryFilter] = useState<GoalCategory | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [search, setSearch] = useState('');
@@ -71,6 +72,13 @@ const Index = () => {
             <AddGoalDialog onAdd={addGoal} />
           </div>
         </motion.div>
+
+        {/* Streak Calendar */}
+        {goals.length > 0 && (
+          <div className="mb-6">
+            <StreakCalendar />
+          </div>
+        )}
 
         {/* Stats */}
         {goals.length > 0 && (
@@ -139,6 +147,7 @@ const Index = () => {
                 <GoalCard key={goal.id} goal={goal} index={i}
                   onToggleMilestone={toggleMilestone} onDelete={deleteGoal}
                   onTogglePin={togglePin} onUpdateStatus={updateGoalStatus}
+                  onEdit={updateGoal}
                 />
               ))}
             </AnimatePresence>

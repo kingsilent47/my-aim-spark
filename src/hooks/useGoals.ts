@@ -91,7 +91,7 @@ export function useGoals() {
 
   const toggleMilestone = useCallback(async (goalId: string, milestoneId: string) => {
     const goal = goals.find(g => g.id === goalId);
-    if (!goal) return;
+    if (!goal || !user) return;
     const milestones = goal.milestones.map(m =>
       m.id === milestoneId ? { ...m, completed: !m.completed } : m
     );
@@ -103,7 +103,15 @@ export function useGoals() {
     await supabase.from('goals').update({
       milestones: milestones as unknown as Json, progress, status,
     }).eq('id', goalId);
-  }, [goals]);
+
+    // Log activity for streak tracking
+    const toggled = milestones.find(m => m.id === milestoneId);
+    if (toggled?.completed) {
+      await supabase.from('activity_log').insert({
+        user_id: user.id, goal_id: goalId, action: 'milestone_completed',
+      });
+    }
+  }, [goals, user]);
 
   const updateGoalStatus = useCallback(async (goalId: string, status: string) => {
     setGoals(prev => prev.map(g => g.id === goalId ? { ...g, status } : g));
@@ -127,5 +135,28 @@ export function useGoals() {
     toast.success('Goals exported!');
   }, [goals]);
 
-  return { goals, loading, addGoal, deleteGoal, toggleMilestone, updateGoalStatus, togglePin, exportGoals, refetch: fetchGoals };
+  const updateGoal = useCallback(async (id: string, data: {
+    title: string; description: string; category: GoalCategory; targetDate: string;
+    milestones: { id: string; title: string; completed: boolean }[];
+  }) => {
+    if (!user) return;
+    const milestones = data.milestones.filter(m => m.title.trim());
+    const completed = milestones.filter(m => m.completed).length;
+    const progress = milestones.length > 0 ? Math.round((completed / milestones.length) * 100) : 0;
+    const status = progress === 100 ? 'completed' : 'active';
+
+    setGoals(prev => prev.map(g => g.id === id ? {
+      ...g, title: data.title, description: data.description, category: data.category,
+      target_date: data.targetDate, milestones, progress, status,
+    } : g));
+
+    const { error } = await supabase.from('goals').update({
+      title: data.title, description: data.description, category: data.category,
+      target_date: data.targetDate, milestones: milestones as unknown as Json, progress, status,
+    }).eq('id', id);
+    if (error) { toast.error('Failed to update goal'); fetchGoals(); }
+    else toast.success('Goal updated!');
+  }, [user, fetchGoals]);
+
+  return { goals, loading, addGoal, updateGoal, deleteGoal, toggleMilestone, updateGoalStatus, togglePin, exportGoals, refetch: fetchGoals };
 }
