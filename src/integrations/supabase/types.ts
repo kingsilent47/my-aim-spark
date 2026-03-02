@@ -58,6 +58,7 @@ export type Database = {
           milestones: Json
           pinned: boolean
           progress: number
+          sort_order: number
           status: string
           target_date: string
           title: string
@@ -72,6 +73,7 @@ export type Database = {
           milestones?: Json
           pinned?: boolean
           progress?: number
+          sort_order?: number
           status?: string
           target_date: string
           title: string
@@ -86,6 +88,7 @@ export type Database = {
           milestones?: Json
           pinned?: boolean
           progress?: number
+          sort_order?: number
           status?: string
           target_date?: string
           title?: string

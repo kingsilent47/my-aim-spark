@@ -1,15 +1,19 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
+
 import { useGoals } from '@/hooks/useGoals';
 import { useAuth } from '@/hooks/useAuth';
 import { GoalCategory, CATEGORY_CONFIG } from '@/types/goal';
-import GoalCard from '@/components/GoalCard';
+import SortableGoalCard from '@/components/SortableGoalCard';
 import AddGoalDialog from '@/components/AddGoalDialog';
 import StatsBar from '@/components/StatsBar';
 import EmptyState from '@/components/EmptyState';
 import ThemeToggle from '@/components/ThemeToggle';
 import AnalyticsModal from '@/components/AnalyticsModal';
 import StreakCalendar from '@/components/StreakCalendar';
+import DeadlineReminders from '@/components/DeadlineReminders';
 import { Target, LogOut, Download, Search, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,7 +24,11 @@ const allCategories = Object.keys(CATEGORY_CONFIG) as GoalCategory[];
 
 const Index = () => {
   const { user, loading: authLoading, signOut } = useAuth();
-  const { goals, loading, addGoal, updateGoal, deleteGoal, toggleMilestone, updateGoalStatus, togglePin, exportGoals } = useGoals();
+  const { goals, loading, addGoal, updateGoal, deleteGoal, toggleMilestone, updateGoalStatus, togglePin, exportGoals, reorderGoals } = useGoals();
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor)
+  );
   const [categoryFilter, setCategoryFilter] = useState<GoalCategory | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [search, setSearch] = useState('');
@@ -36,6 +44,21 @@ const Index = () => {
     }
     return result;
   }, [goals, statusFilter, categoryFilter, search]);
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = filtered.findIndex(g => g.id === active.id);
+    const newIndex = filtered.findIndex(g => g.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = arrayMove(filtered, oldIndex, newIndex);
+    const idToOrder = new Map(reordered.map((g, i) => [g.id, i]));
+    const updatedGoals = goals.map(g => ({
+      ...g,
+      sort_order: idToOrder.has(g.id) ? idToOrder.get(g.id)! : g.sort_order,
+    })).sort((a, b) => a.sort_order - b.sort_order);
+    reorderGoals(updatedGoals);
+  }, [filtered, goals, reorderGoals]);
 
   if (authLoading) return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
   if (!user) return <Navigate to="/auth" replace />;
@@ -79,6 +102,9 @@ const Index = () => {
             <StreakCalendar />
           </div>
         )}
+
+        {/* Deadline Reminders */}
+        {goals.length > 0 && <DeadlineReminders goals={goals} />}
 
         {/* Stats */}
         {goals.length > 0 && (
@@ -141,17 +167,21 @@ const Index = () => {
         ) : filtered.length === 0 ? (
           <p className="text-center text-muted-foreground py-12">No goals match your filters.</p>
         ) : (
-          <div className="space-y-4">
-            <AnimatePresence mode="popLayout">
-              {filtered.map((goal, i) => (
-                <GoalCard key={goal.id} goal={goal} index={i}
-                  onToggleMilestone={toggleMilestone} onDelete={deleteGoal}
-                  onTogglePin={togglePin} onUpdateStatus={updateGoalStatus}
-                  onEdit={updateGoal}
-                />
-              ))}
-            </AnimatePresence>
-          </div>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={filtered.map(g => g.id)} strategy={verticalListSortingStrategy}>
+              <div className="space-y-4">
+                <AnimatePresence mode="popLayout">
+                  {filtered.map((goal, i) => (
+                    <SortableGoalCard key={goal.id} goal={goal} index={i}
+                      onToggleMilestone={toggleMilestone} onDelete={deleteGoal}
+                      onTogglePin={togglePin} onUpdateStatus={updateGoalStatus}
+                      onEdit={updateGoal}
+                    />
+                  ))}
+                </AnimatePresence>
+              </div>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
     </div>

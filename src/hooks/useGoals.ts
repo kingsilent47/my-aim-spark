@@ -16,6 +16,7 @@ export interface DbGoal {
   milestones: Milestone[];
   status: string;
   pinned: boolean;
+  sort_order: number;
   created_at: string;
   updated_at: string;
 }
@@ -32,6 +33,7 @@ export function useGoals() {
       .from('goals')
       .select('*')
       .order('pinned', { ascending: false })
+      .order('sort_order', { ascending: true })
       .order('created_at', { ascending: false });
 
     if (error) { toast.error('Failed to load goals'); console.error(error); }
@@ -158,5 +160,14 @@ export function useGoals() {
     else toast.success('Goal updated!');
   }, [user, fetchGoals]);
 
-  return { goals, loading, addGoal, updateGoal, deleteGoal, toggleMilestone, updateGoalStatus, togglePin, exportGoals, refetch: fetchGoals };
+  const reorderGoals = useCallback(async (reorderedGoals: DbGoal[]) => {
+    setGoals(reorderedGoals);
+    // Update sort_order for each goal
+    const updates = reorderedGoals.map((g, i) => 
+      supabase.from('goals').update({ sort_order: i }).eq('id', g.id)
+    );
+    await Promise.all(updates);
+  }, []);
+
+  return { goals, loading, addGoal, updateGoal, deleteGoal, toggleMilestone, updateGoalStatus, togglePin, exportGoals, reorderGoals, refetch: fetchGoals };
 }
