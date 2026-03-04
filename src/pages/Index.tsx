@@ -22,6 +22,13 @@ import { Navigate } from 'react-router-dom';
 type StatusFilter = 'all' | 'pinned' | 'active' | 'completed' | 'archived';
 const allCategories = Object.keys(CATEGORY_CONFIG) as GoalCategory[];
 
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+};
+
 const Index = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const { goals, loading, addGoal, updateGoal, deleteGoal, toggleMilestone, updateGoalStatus, togglePin, exportGoals, reorderGoals } = useGoals();
@@ -73,23 +80,25 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-3xl mx-auto px-4 py-8 sm:py-12">
+      <div className="max-w-3xl mx-auto px-4 py-10 sm:py-14">
         {/* Header */}
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-primary/10 p-2"><Target className="w-6 h-6 text-primary" /></div>
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex items-center justify-between mb-10">
+          <div className="flex items-center gap-4">
+            <div className="rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 p-2.5 shadow-glow">
+              <Target className="w-6 h-6 text-primary" />
+            </div>
             <div>
               <h1 className="text-2xl font-heading font-bold text-foreground">GoalTracker</h1>
-              <p className="text-sm text-muted-foreground">Stay focused, stay on track</p>
+              <p className="text-sm text-muted-foreground">{getGreeting()}! Stay focused, stay on track.</p>
             </div>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             <AnalyticsModal goals={goals} />
             <ThemeToggle />
-            <Button variant="ghost" size="icon" onClick={exportGoals} className="text-muted-foreground" title="Export JSON">
+            <Button variant="ghost" size="icon" onClick={exportGoals} className="text-muted-foreground btn-press" title="Export JSON">
               <Download className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={signOut} className="text-muted-foreground" title="Sign out">
+            <Button variant="ghost" size="icon" onClick={signOut} className="text-muted-foreground btn-press" title="Sign out">
               <LogOut className="w-4 h-4" />
             </Button>
             <AddGoalDialog onAdd={addGoal} />
@@ -98,7 +107,7 @@ const Index = () => {
 
         {/* Streak Calendar */}
         {goals.length > 0 && (
-          <div className="mb-6">
+          <div className="mb-8">
             <StreakCalendar />
           </div>
         )}
@@ -108,17 +117,17 @@ const Index = () => {
 
         {/* Stats */}
         {goals.length > 0 && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-6">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.4 }} className="mb-8">
             <StatsBar goals={goals} />
           </motion.div>
         )}
 
         {/* Search */}
         {goals.length > 0 && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.12 }} className="mb-4">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.12 }} className="mb-5">
             <div className="relative">
-              <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
-              <Input placeholder="Search goals..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
+              <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-muted-foreground" />
+              <Input placeholder="Search goals..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10 bg-card border-border shadow-soft transition-shadow focus:shadow-card" />
             </div>
           </motion.div>
         )}
@@ -128,9 +137,7 @@ const Index = () => {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.14 }} className="flex flex-wrap gap-2 mb-4">
             {statusFilters.map(sf => (
               <button key={sf.key} onClick={() => setStatusFilter(sf.key)}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors border ${
-                  statusFilter === sf.key ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary text-secondary-foreground border-border hover:bg-muted'
-                }`}
+                className={`filter-pill ${statusFilter === sf.key ? 'filter-pill-active' : 'filter-pill-inactive'}`}
               >{sf.label}</button>
             ))}
           </motion.div>
@@ -138,11 +145,9 @@ const Index = () => {
 
         {/* Category Filters */}
         {goals.length > 0 && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.16 }} className="flex flex-wrap gap-2 mb-6">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.16 }} className="flex flex-wrap gap-2 mb-8">
             <button onClick={() => setCategoryFilter('all')}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors border ${
-                categoryFilter === 'all' ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary text-secondary-foreground border-border hover:bg-muted'
-              }`}
+              className={`filter-pill ${categoryFilter === 'all' ? 'filter-pill-active' : 'filter-pill-inactive'}`}
             >All Categories</button>
             {allCategories.map(key => {
               const config = CATEGORY_CONFIG[key];
@@ -150,9 +155,7 @@ const Index = () => {
               if (count === 0) return null;
               return (
                 <button key={key} onClick={() => setCategoryFilter(key)}
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors border ${
-                    categoryFilter === key ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary text-secondary-foreground border-border hover:bg-muted'
-                  }`}
+                  className={`filter-pill ${categoryFilter === key ? 'filter-pill-active' : 'filter-pill-inactive'}`}
                 >{config.emoji} {config.label} ({count})</button>
               );
             })}
@@ -161,11 +164,11 @@ const Index = () => {
 
         {/* Loading */}
         {loading ? (
-          <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+          <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
         ) : filtered.length === 0 && goals.length === 0 ? (
           <EmptyState />
         ) : filtered.length === 0 ? (
-          <p className="text-center text-muted-foreground py-12">No goals match your filters.</p>
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center text-muted-foreground py-16">No goals match your filters.</motion.p>
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={filtered.map(g => g.id)} strategy={verticalListSortingStrategy}>

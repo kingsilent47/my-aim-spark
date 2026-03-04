@@ -9,10 +9,10 @@
     --background: 40 20% 98%;
     --foreground: 30 10% 12%;
 
-    --card: 40 25% 96%;
+    --card: 0 0% 100%;
     --card-foreground: 30 10% 12%;
 
-    --popover: 40 20% 98%;
+    --popover: 0 0% 100%;
     --popover-foreground: 30 10% 12%;
 
     --primary: 152 45% 42%;
@@ -30,20 +30,26 @@
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 35 15% 88%;
-    --input: 35 15% 88%;
+    --border: 35 12% 90%;
+    --input: 35 12% 90%;
     --ring: 152 45% 42%;
 
-    --radius: 0.75rem;
+    --radius: 0.875rem;
 
     --success: 152 45% 42%;
     --success-foreground: 0 0% 100%;
     --warning: 38 80% 58%;
     --warning-foreground: 30 10% 12%;
-    --progress-bg: 35 15% 90%;
+    --progress-bg: 35 15% 92%;
 
     --font-heading: 'Space Grotesk', sans-serif;
     --font-body: 'Inter', sans-serif;
+
+    /* Premium design tokens */
+    --shadow-soft: 0 1px 3px 0 hsl(30 10% 12% / 0.04), 0 4px 12px -2px hsl(30 10% 12% / 0.06);
+    --shadow-card: 0 1px 2px 0 hsl(30 10% 12% / 0.03), 0 6px 16px -4px hsl(30 10% 12% / 0.07);
+    --shadow-card-hover: 0 2px 4px 0 hsl(30 10% 12% / 0.04), 0 12px 28px -6px hsl(30 10% 12% / 0.1);
+    --shadow-glow: 0 0 20px -4px hsl(152 45% 42% / 0.15);
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -56,22 +62,22 @@
   }
 
   .dark {
-    --background: 30 10% 8%;
+    --background: 228 14% 7%;
     --foreground: 40 15% 92%;
 
-    --card: 30 10% 12%;
+    --card: 228 12% 10%;
     --card-foreground: 40 15% 92%;
 
-    --popover: 30 10% 10%;
+    --popover: 228 12% 9%;
     --popover-foreground: 40 15% 92%;
 
     --primary: 152 50% 48%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 30 10% 18%;
+    --secondary: 228 10% 16%;
     --secondary-foreground: 40 15% 85%;
 
-    --muted: 30 8% 16%;
+    --muted: 228 8% 14%;
     --muted-foreground: 35 10% 55%;
 
     --accent: 38 75% 55%;
@@ -80,15 +86,20 @@
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 30 8% 20%;
-    --input: 30 8% 20%;
+    --border: 228 8% 16%;
+    --input: 228 8% 16%;
     --ring: 152 50% 48%;
 
     --success: 152 50% 48%;
     --success-foreground: 0 0% 100%;
     --warning: 38 75% 55%;
     --warning-foreground: 30 10% 8%;
-    --progress-bg: 30 8% 18%;
+    --progress-bg: 228 8% 15%;
+
+    --shadow-soft: 0 1px 3px 0 hsl(0 0% 0% / 0.15), 0 4px 12px -2px hsl(0 0% 0% / 0.2);
+    --shadow-card: 0 1px 2px 0 hsl(0 0% 0% / 0.12), 0 6px 16px -4px hsl(0 0% 0% / 0.2);
+    --shadow-card-hover: 0 2px 4px 0 hsl(0 0% 0% / 0.15), 0 12px 28px -6px hsl(0 0% 0% / 0.25);
+    --shadow-glow: 0 0 20px -4px hsl(152 50% 48% / 0.2);
 
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
@@ -106,10 +117,58 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
     font-family: var(--font-body);
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
   }
+}
+
+@layer components {
+  /* Premium button press effect */
+  .btn-press {
+    @apply transition-all duration-150;
+  }
+  .btn-press:active {
+    transform: scale(0.96);
+  }
+
+  /* Premium card base */
+  .card-premium {
+    box-shadow: var(--shadow-card);
+    transition: box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .card-premium:hover {
+    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-1px);
+  }
+
+  /* Glass effect */
+  .glass {
+    @apply backdrop-blur-sm;
+    background: hsl(var(--card) / 0.8);
+  }
+
+  /* Smooth checkbox animation */
+  .checkbox-smooth [data-state="checked"] {
+    animation: checkmark-pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  /* Filter pill */
+  .filter-pill {
+    @apply px-3.5 py-1.5 rounded-full text-sm font-medium transition-all duration-200 border btn-press;
+  }
+  .filter-pill-active {
+    @apply bg-primary text-primary-foreground border-primary shadow-sm;
+  }
+  .filter-pill-inactive {
+    @apply bg-card text-secondary-foreground border-border hover:border-primary/30 hover:bg-primary/5;
+  }
+}
+
+@keyframes checkmark-pop {
+  0% { transform: scale(0.8); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
 }
