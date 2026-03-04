@@ -1,9 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DbGoal } from '@/hooks/useGoals';
 import { differenceInDays, parseISO } from 'date-fns';
 import { AlertTriangle, Clock, X } from 'lucide-react';
-import { useState } from 'react';
 
 interface DeadlineRemindersProps {
   goals: DbGoal[];
@@ -27,7 +26,7 @@ const DeadlineReminders = ({ goals }: DeadlineRemindersProps) => {
   if (upcoming.length === 0) return null;
 
   return (
-    <div className="space-y-2 mb-6">
+    <div className="space-y-2.5 mb-8">
       <AnimatePresence>
         {upcoming.map(g => {
           const isOverdue = g.daysLeft < 0;
@@ -35,15 +34,16 @@ const DeadlineReminders = ({ goals }: DeadlineRemindersProps) => {
           return (
             <motion.div
               key={g.id}
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg border text-sm ${
+              initial={{ opacity: 0, height: 0, y: -8 }}
+              animate={{ opacity: 1, height: 'auto', y: 0 }}
+              exit={{ opacity: 0, height: 0, y: -8 }}
+              transition={{ duration: 0.3 }}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg border text-sm shadow-soft ${
                 isOverdue
-                  ? 'bg-destructive/10 border-destructive/30 text-destructive'
+                  ? 'bg-destructive/8 border-destructive/20 text-destructive'
                   : isUrgent
-                  ? 'bg-warning/10 border-warning/30 text-warning'
-                  : 'bg-accent/50 border-border text-foreground'
+                  ? 'bg-warning/8 border-warning/20 text-warning'
+                  : 'bg-accent/5 border-border text-foreground'
               }`}
             >
               {isOverdue ? (
@@ -66,7 +66,7 @@ const DeadlineReminders = ({ goals }: DeadlineRemindersProps) => {
               </span>
               <button
                 onClick={() => setDismissed(prev => new Set(prev).add(g.id))}
-                className="shrink-0 p-1 rounded hover:bg-background/50 transition-colors"
+                className="shrink-0 p-1 rounded-md hover:bg-background/50 transition-colors btn-press"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
